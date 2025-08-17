@@ -1,0 +1,25 @@
+# Ignore object files
+*.o
+
+# Ignore compiled binaries (executables)
+*.out
+*.exe
+*.bin
+
+# Ignore core dumps
+core
+
+# Ignore Makefiles (if you don't want to track them)
+#Makefile
+
+# Ignore backup or temporary files
+*~
+*.swp
+
+# Ignore build directories
+/build/
+/bin/
+/obj/
+
+# Ignore log files
+*.log
