@@ -8,4 +8,4 @@ A simple top-down shooter built with SDL2 in C. Features pathfinding, FOV, enemy
 - Run: `./game`
 
 ## License
-MIT License (see LICENSE file).
+
