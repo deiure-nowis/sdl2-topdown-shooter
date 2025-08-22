@@ -96,6 +96,7 @@ typedef struct{
     int wall_count;    // Number of walls
     Flag* flags;       // Ascending
     int flag_count;   // Number of flags
+    float fps;			// Game fps
 } World;
 
 // Represents the camera for rendering the game view

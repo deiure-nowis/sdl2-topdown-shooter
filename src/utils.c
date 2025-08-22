@@ -15,6 +15,15 @@ int absi(int x){
 	return (x + mask) ^ mask;
 }
 
+float maxf(float a, float b) {
+    return (a > b) ? a : b;
+}
+
+float minf(float a, float b) {
+    return (a < b) ? a : b;
+}
+
+
 float my_sqrt(float x){
 	if(x<0.0) return 0.0 / 0.0;
 	if(x==0 || x==1) return x;
@@ -264,6 +273,34 @@ void SDL_RenderFillPolygon(SDL_Renderer* renderer, const SDL_Point* points, int 
             SDL_RenderDrawLine(renderer, intersections[i], y, intersections[i + 1], y);
         }
     }
+}
+
+float ray_aabb_intersect(float px, float py, float dx, float dy, float minx, float miny, float maxx, float maxy) {
+    float inv_dx = (dx != 0.0f) ? 1.0f / dx : (dx > 0 ? 1e30f : -1e30f);
+    float inv_dy = (dy != 0.0f) ? 1.0f / dy : (dy > 0 ? 1e30f : -1e30f);
+
+    float tx1 = (minx - px) * inv_dx;
+    float tx2 = (maxx - px) * inv_dx;
+    float ty1 = (miny - py) * inv_dy;
+    float ty2 = (maxy - py) * inv_dy;
+
+    float tmin = maxf(minf(tx1, tx2), minf(ty1, ty2));
+    float tmax = minf(maxf(tx1, tx2), maxf(ty1, ty2));
+
+    if (tmax < tmin || tmin < 0.0f) return -1.0f;
+    return tmin;
+}
+
+float get_visibility_distance(float x1, float y1, float dx, float dy, World* world) {
+    float min_dist = 1e30f;  // Large initial value
+    for (int i = 0; i < world->wall_count; i++) {
+        Wall* w = &world->walls[i];
+        if (w->type == WALL_OPAQUE) {  // These block sight, based on current logic
+            float t = ray_aabb_intersect(x1, y1, dx, dy, w->x, w->y, w->x + w->w, w->y + w->h);
+            if (t > 0.0f && t < min_dist) min_dist = t;
+        }
+    }
+    return min_dist;
 }
 
 size_t my_strlen(const char *str) {

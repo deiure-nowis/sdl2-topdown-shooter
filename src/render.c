@@ -1,6 +1,7 @@
 #include "render.h"
 #include "utils.h"
 #include "command.h"
+//#include <math.h>
 
 // Renders a minimap to the screen showing walls, player, bullets, enemies, and camera view.
 void render_minimap(SDL_Renderer* renderer, Player* player, Bullet* bullets, Camera* camera, World* world, Enemy* enemies) {
@@ -135,101 +136,119 @@ void render_fov(SDL_Renderer* renderer, Player* player, Camera* camera, World* w
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0); // Fully transparent
 
-    // Calculate player position in world coordinates
+    // Calculate player position in world and screen coordinates
     float player_x = player->x + player->w / 2.0f;
     float player_y = player->y + player->h / 2.0f;
+    float player_screen_x = player_x - camera->x;
+    float player_screen_y = player_y - camera->y;
+
+    // Array to hold points for polygons (sector + circle, each with 32 rays + start/end points)
+    SDL_Point points[34]; // 32 rays + player start + player end
+
+    // --- Sector Polygon (90-degree, 700 pixels) ---
+    int rays = 32;
     float angle_rad = player->angle * (MA_PI / 180.0f);
     float half_fov_rad = FOV_HALF_ANGLE * (MA_PI / 180.0f);
-    int rays = 32; // Number of rays for precision
     float angle_step = (2.0f * half_fov_rad) / (rays - 1);
 
-    // Array to hold player position + ray endpoints + closing point
-    SDL_Point points[362]; // 360 rays + player start + player end
-
-    // Set the first point as the player's screen position
-    points[0].x = (int)(player_x - camera->x);
-    points[0].y = (int)(player_y - camera->y);
-
-    // Cast rays to define the FOV boundary
+    points[0].x = (int)player_screen_x;
+    points[0].y = (int)player_screen_y;
     for (int i = 0; i < rays; i++) {
         float ray_angle = angle_rad - half_fov_rad + angle_step * i;
         float cos_a = my_cosf(ray_angle);
         float sin_a = my_sinf(ray_angle);
-        float ray_x = player_x;
-        float ray_y = player_y;
-        float distance = 0.0f;
-
-        // Raycasting loop
-        while (distance < FOV_RANGE) {
-            ray_x += cos_a * (TILE_SIZE / 2.0f);
-            ray_y += sin_a * (TILE_SIZE / 2.0f);
-            distance = my_sqrt((ray_x - player_x) * (ray_x - player_x) + (ray_y - player_y) * (ray_y - player_y));
-
-            int tile_x = (int)(ray_x / TILE_SIZE);
-            int tile_y = (int)(ray_y / TILE_SIZE);
-
-            if (tile_x < 0 || tile_x >= MAP_SIZE || tile_y < 0 || tile_y >= MAP_SIZE ||
-                world->map[tile_y][tile_x] == WALL_OPAQUE) {
-                break;
-            }
-        }
-
-        // Convert to screen coordinates
-        points[i + 1].x = (int)(ray_x - camera->x);
-        points[i + 1].y = (int)(ray_y - camera->y);
+        float dist = get_visibility_distance(player_x, player_y, cos_a, sin_a, world);
+        if (dist > FOV_RANGE) dist = FOV_RANGE;
+        points[i + 1].x = (int)(player_screen_x + cos_a * dist);
+        points[i + 1].y = (int)(player_screen_y + sin_a * dist);
     }
-
-    // Close the polygon by returning to the player's position
     points[rays + 1].x = points[0].x;
     points[rays + 1].y = points[0].y;
-
-    // Fill the FOV polygon with transparency
     SDL_RenderFillPolygon(renderer, points, rays + 2);
 
-    // Restore the original blend mode
-    SDL_SetRenderDrawBlendMode(renderer, current_blend_mode);
+    // --- Circle Polygon (360-degree, 64 pixels) ---
+    float circle_angle_step = (2.0f * MA_PI) / (rays - 1);
+    points[0].x = (int)player_screen_x;
+    points[0].y = (int)player_screen_y;
+    for (int i = 0; i < rays; i++) {
+        float ray_angle = circle_angle_step * i;
+        float cos_a = my_cosf(ray_angle);
+        float sin_a = my_sinf(ray_angle);
+        float dist = get_visibility_distance(player_x, player_y, cos_a, sin_a, world);
+        if (dist > FOV_CIRCLE_R) dist = FOV_CIRCLE_R;
+        points[i + 1].x = (int)(player_screen_x + cos_a * dist);
+        points[i + 1].y = (int)(player_screen_y + sin_a * dist);
+    }
+    points[rays + 1].x = points[0].x;
+    points[rays + 1].y = points[0].y;
+    SDL_RenderFillPolygon(renderer, points, rays + 2);
 
-    // Reset render target to default
+    // Restore original blend mode and render target
+    SDL_SetRenderDrawBlendMode(renderer, current_blend_mode);
     SDL_SetRenderTarget(renderer, NULL);
 }
 
 bool is_in_fov(float x, float y, Player* player, World* world, float* alpha) {
-    float player_x = player->x + player->w / 2;
-    float player_y = player->y + player->h / 2;
+    float player_x = player->x + player->w / 2.0f;
+    float player_y = player->y + player->h / 2.0f;
     float dx = x - player_x;
     float dy = y - player_y;
     float distance = my_sqrt(dx * dx + dy * dy);
 
-    if (distance > FOV_RANGE) {
+    bool in_sector = false;
+    bool in_circle = false;
+
+    // Check 360-degree circle (FOV_CIRCLE_R = 64.0f)
+    if (distance <= FOV_CIRCLE_R) {
+        in_circle = true;
+    }
+
+    // Check 90-degree sector (FOV_RANGE = 700.0f)
+    if (distance <= FOV_RANGE) {
+        float angle_to_point = my_atan2f(dy, dx) * (180.0f / MA_PI);
+        float angle_diff = angle_to_point - player->angle;
+        while (angle_diff > 180.0f) angle_diff -= 360.0f;
+        while (angle_diff < -180.0f) angle_diff += 360.0f;
+        if (absf(angle_diff) <= FOV_HALF_ANGLE) {
+            in_sector = true;
+        }
+    }
+
+    // Point is visible if in either region
+    if (!in_sector && !in_circle) {
         *alpha = 0.0f;
         return false;
     }
 
-    float angle_to_point = my_atan2f(dy, dx) * (180.0f / MA_PI);
-    float angle_diff = angle_to_point - player->angle;
-    while (angle_diff > 180.0f) angle_diff -= 360.0f;
-    while (angle_diff < -180.0f) angle_diff += 360.0f;
-
-    if (absf(angle_diff) > FOV_HALF_ANGLE) {
-        *alpha = 0.0f;
-        return false;
-    }
-
+    // Check line-of-sight (blocked by opaque walls)
     if (!has_line_of_sight(player_x, player_y, x, y, world, false, true)) {
         *alpha = 0.0f;
         return false;
     }
 
-    if (distance > FOV_TRANSITIONAL_RANGE) {
-        *alpha = 255.0f * (1.0f - (distance - FOV_TRANSITIONAL_RANGE) / (FOV_RANGE - FOV_TRANSITIONAL_RANGE));
+    // Calculate alpha based on the region
+    if (in_circle) {
+        // Fade in the circle's transitional range (54 to 64 pixels)
+        if (distance > FOV_CIRCLE_TRANSITIONAL_RANGE) {
+            *alpha = 255.0f * (FOV_CIRCLE_R - distance) / (FOV_CIRCLE_R - FOV_CIRCLE_TRANSITIONAL_RANGE);
+        } else {
+            *alpha = 255.0f;
+        }
     } else {
-        *alpha = 255.0f;
+        // Fade in the sector's transitional range (650 to 700 pixels)
+        if (distance > FOV_TRANSITIONAL_RANGE) {
+            *alpha = 255.0f * (FOV_RANGE - distance) / (FOV_RANGE - FOV_TRANSITIONAL_RANGE);
+        } else {
+            *alpha = 255.0f;
+        }
     }
 
     return true;
 }
 
-void render(SDL_Renderer* renderer, Player* player, Camera* camera, World* world, Bullet* bullets, Enemy* enemies, TTF_Font* font, float fps, Console* console, GameState* game_state) {
+// Modified render() function in render.c (only the relevant parts are shown; replace accordingly)
+
+void render(SDL_Renderer* renderer, Player* player, Camera* camera, World* world, Bullet* bullets, Enemy* enemies, TTF_Font* font, Console* console, GameState* game_state) {
     if (!renderer) {
         printf("Error: Null renderer in render\n");
         return;
@@ -276,8 +295,8 @@ void render(SDL_Renderer* renderer, Player* player, Camera* camera, World* world
         }
     }
 
-	// Render flags
-	for (int i = 0; i < world->flag_count; i++) {
+    // Render flags
+    for (int i = 0; i < world->flag_count; i++) {
         if (world->flags[i].active) {
             SDL_Rect flag_rect = {
                 (int)(world->flags[i].x - camera->x),
@@ -336,28 +355,28 @@ void render(SDL_Renderer* renderer, Player* player, Camera* camera, World* world
     SDL_SetTextureAlphaMod(fov_mask, 255);
     SDL_RenderCopy(renderer, fov_mask, NULL, NULL);
 
-	static SDL_Texture* fps_texture = NULL;
-	static float last_fps = -1.0f;
-	if (font && absf(fps - last_fps) > 1.0f) {
-		last_fps = fps;
-		if (fps_texture) SDL_DestroyTexture(fps_texture);
-		char fps_text[16];
-		snprintf(fps_text, sizeof(fps_text), "FPS: %.1f", fps);
-		SDL_Color white = {255, 255, 255, 255};
-		SDL_Surface* text_surface = TTF_RenderText_Solid(font, fps_text, white);
-		if (text_surface) {
-			fps_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-			SDL_FreeSurface(text_surface);
-		}
-	}
-	if (fps_texture) {
-		int text_w, text_h;
-		SDL_QueryTexture(fps_texture, NULL, NULL, &text_w, &text_h);
-		SDL_Rect text_rect = {10, 10, text_w, text_h};
-		SDL_RenderCopy(renderer, fps_texture, NULL, &text_rect);
-	}
+    static SDL_Texture* fps_texture = NULL;
+    static float last_fps = -1.0f;
+    if (font && absf(world->fps - last_fps) > 1.0f) {
+        last_fps = world->fps;
+        if (fps_texture) SDL_DestroyTexture(fps_texture);
+        char fps_text[16];
+        snprintf(fps_text, sizeof(fps_text), "FPS: %.1f", world->fps);
+        SDL_Color white = {255, 255, 255, 255};
+        SDL_Surface* text_surface = TTF_RenderText_Solid(font, fps_text, white);
+        if (text_surface) {
+            fps_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+            SDL_FreeSurface(text_surface);
+        }
+    }
+    if (fps_texture) {
+        int text_w, text_h;
+        SDL_QueryTexture(fps_texture, NULL, NULL, &text_w, &text_h);
+        SDL_Rect text_rect = {10, 10, text_w, text_h};
+        SDL_RenderCopy(renderer, fps_texture, NULL, &text_rect);
+    }
 
-	render_console(renderer, console, font);
+    render_console(renderer, console, font);
 
     if (game_state->minimap) render_minimap(renderer, player, bullets, camera, world, enemies);
     SDL_RenderPresent(renderer);

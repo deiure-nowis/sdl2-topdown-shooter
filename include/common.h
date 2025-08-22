@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <time.h>
+//#include <math.h>
 
 // Defines the world width in pixels (2048 pixels)
 #define WORLD_W 2048
@@ -26,16 +27,21 @@
 
 // Defines the maximum field of view range for visibility calculations (700 pixels)
 #define FOV_RANGE 700.0f
+// Defines the radius of the circular FOV around the player (64 pixels)
+#define FOV_CIRCLE_R 64.0f
 // Defines half of the field of view angle in degrees (45 degrees, so full FOV is 90 degrees)
 #define FOV_HALF_ANGLE 45.0f
 // Defines the transitional range for fading visibility in FOV (650 pixels)
 #define FOV_TRANSITIONAL_RANGE 650.0f
+#define FOV_CIRCLE_TRANSITIONAL_RANGE (FOV_CIRCLE_R - 10.0f)
 // Defines the alpha value for grayed-out areas in FOV (150 for partial transparency)
 #define FOV_GRAY_ALPHA 150
-// Defines the player's rotation speed in degrees per second (240 degrees/second for a 180-degree turn in 0.75 seconds)
-#define PLAYER_ROTATION_SPEED 240.0f
+// Defines the player's rotation speed in degrees per second (270 degrees/second for a 180-degree turn in 0.66 seconds)
+#define PLAYER_ROTATION_SPEED 270.0f
 // Defines the maximum rotation per fixed update for the player (based on rotation speed and fixed delta time)
 #define MAX_PLAYER_ROTATION (PLAYER_ROTATION_SPEED * FIXED_DT * 1.0f)
+// Number of rays for smooth circle approximation (higher = smoother, but 360 is ample for 90-degree FOV)
+#define FOV_RAY_COUNT 64
 
 // Defines the maximum number of bullets that can exist at once (200 bullets)
 #define MAX_BULLETS 200

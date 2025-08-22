@@ -5,6 +5,8 @@
 
 float absf(float x);
 int absi(int x);
+float maxf(float a, float b);
+float minf(float a, float b);
 float my_sqrt(float x);
 float my_atan2f(float y,float x);
 float my_cosf(float x);
@@ -16,6 +18,8 @@ bool check_collision(float x1, float y1, float w1, float h1, float x2, float y2,
 bool is_valid_node(int x, int y, World* world);
 bool has_line_of_sight(float start_x, float start_y, float end_x, float end_y, World* world, bool block_by_bulletproof, bool block_by_opaque);
 void SDL_RenderFillPolygon(SDL_Renderer* renderer, const SDL_Point* points, int count);
+float ray_aabb_intersect(float px, float py, float dx, float dy, float minx, float miny, float maxx, float maxy);
+float get_visibility_distance(float x1, float y1, float dx, float dy, World* world);
 
 size_t my_strlen(const char *str);
 char *my_strcpy(char *dest, const char *src);

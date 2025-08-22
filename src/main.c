@@ -221,90 +221,95 @@ int main(int argc, char* argv[]) {
     SDL_SetWindowFullscreen(window, game_state.is_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
     SDL_StartTextInput();
 
-    bool running = true;
-    float frame_times[10] = {0.0f};
-    int frame_time_index = 0;
-    float fps = 0.0f;
-    float fps_update_timer = 0.0f;
-    float accumulator = 0.0f;
+	bool running = true;
+	double frame_times[10] = {0.0};
+	int frame_time_index = 0;
+	world.fps = 0.0f;  // Initialize fps in world
+	float fps_update_timer = 0.0f;
+	double accumulator = 0.0;
 
 	const Uint64 frequency = SDL_GetPerformanceFrequency();
-    Uint64 last_time = SDL_GetPerformanceCounter();
+	Uint64 last_time = SDL_GetPerformanceCounter();
 
-    while (running) {
+	while (running) {
 		Uint64 frame_start = SDL_GetPerformanceCounter();
 
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                running = false;
-            } else if (event.type == SDL_KEYDOWN) {
-                SDL_Keycode key = event.key.keysym.sym;
-                if (console.active) {
-                    // Only handle console-related keys when console is active
-                    handle_console_input(&console, &player, &world, &event);
-                } else {
-                    // Handle game controls only when console is inactive
-                    switch (key) {
-                        case SDLK_m:
-                            game_state.minimap = !game_state.minimap;
-                            break;
-                        case SDLK_k:
-                            game_state.is_fullscreen = !game_state.is_fullscreen;
-                            SDL_SetWindowFullscreen(window, game_state.is_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
-                            break;
-                        case SDLK_ESCAPE:
-                            printf("ESC\n");
-                            running = false;
-                            break;
-                        case SDLK_RETURN:
-                            handle_console_input(&console, &player, &world, &event);
-                            break;
-                        default:
+		SDL_Event event;
+		while (SDL_PollEvent(&event)) {
+			if (event.type == SDL_QUIT) {
+				running = false;
+			} else if (event.type == SDL_KEYDOWN) {
+				SDL_Keycode key = event.key.keysym.sym;
+				if (console.active) {
+					// Only handle console-related keys when console is active
+					handle_console_input(&console, &player, &world, &event);
+				} else {
+					// Handle game controls only when console is inactive
+					switch (key) {
+						case SDLK_m:
+							game_state.minimap = !game_state.minimap;
 							break;
-                    }
-                }
-            } else if (event.type == SDL_TEXTINPUT && console.active) {
-                handle_console_input(&console, &player, &world, &event);
-            } else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && !console.active) {
-                Entity player_entity = {player.x, player.y, player.w, player.h, player.angle};
-                spawn_bullet(bullets, &player_entity, 1);
-            }
-        }
+						case SDLK_k:
+							game_state.is_fullscreen = !game_state.is_fullscreen;
+							SDL_SetWindowFullscreen(window, game_state.is_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+							break;
+						case SDLK_ESCAPE:
+							printf("ESC\n");
+							running = false;
+							break;
+						case SDLK_RETURN:
+							handle_console_input(&console, &player, &world, &event);
+							break;
+						default:
+							break;
+					}
+				}
+			} else if (event.type == SDL_TEXTINPUT && console.active) {
+				handle_console_input(&console, &player, &world, &event);
+			} else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && !console.active) {
+				Entity player_entity = {player.x, player.y, player.w, player.h, player.angle};
+				spawn_bullet(bullets, &player_entity, 1);
+			}
+		}
 
-        Uint64 current_time = SDL_GetPerformanceCounter();
-        float delta_time = (float)(current_time - last_time) / frequency;
-        last_time = current_time;
+		Uint64 current_time = SDL_GetPerformanceCounter();
+		double delta_time = (double)(current_time - last_time) / frequency;
+		last_time = current_time;
 
-        accumulator += delta_time;
-        while (accumulator >= FIXED_DT) {
+		accumulator += delta_time;
+		while (accumulator >= FIXED_DT) {
 			fixed_update(&player, &world, bullets, enemies, &camera, &console, &game_state);
-            accumulator -= FIXED_DT;
-        }
-        update_camera(&camera, &player, &world, renderer);
-        render(renderer, &player, &camera, &world, bullets, enemies, font, fps, &console, &game_state);
+			accumulator -= FIXED_DT;
+		}
+		update_camera(&camera, &player, &world, renderer);
+		render(renderer, &player, &camera, &world, bullets, enemies, font, &console, &game_state);  // Removed fps parameter
 
 		// Frame rate capping
-        Uint64 end_time = SDL_GetPerformanceCounter();
-        float frame_time_ms = (float)(end_time - frame_start) * 1000.0f / frequency;
-        if (frame_time_ms < TARGET_FRAME_TIME) {
-            SDL_Delay((Uint32)(TARGET_FRAME_TIME - frame_time_ms));
-        }
+		Uint64 work_end_time = SDL_GetPerformanceCounter();
+		double work_time_ms = (double)(work_end_time - frame_start) / frequency * 1000.0;
+		if (work_time_ms < TARGET_FRAME_TIME) {
+			SDL_Delay((Uint32)(TARGET_FRAME_TIME - work_time_ms));
+		}
 
-		// Update FPS calculation to include delay
-		fps_update_timer += delta_time;
-        frame_times[frame_time_index] = delta_time;
-        frame_time_index = (frame_time_index + 1) % 10;
-        if (fps_update_timer >= FPS_UPDATE_INTERVAL) {
-            float avg_frame_time = 0.0f;
-            for (int i = 0; i < 10; i++) {
-                avg_frame_time += frame_times[i];
-            }
-            avg_frame_time /= 10.0f;
-            fps = avg_frame_time > 0.0f ? 1.0f / avg_frame_time : 0.0f;
-            fps_update_timer = 0.0f;
-        }
-    }
+		// Measure full frame time including delay
+		Uint64 end_time = SDL_GetPerformanceCounter();
+		double frame_time_sec = (double)(end_time - frame_start) / frequency;
+		if (frame_time_sec < 0.0) frame_time_sec = 0.0;  // Safeguard against anomalies
+
+		// Update FPS calculation
+		fps_update_timer += (float)delta_time;
+		frame_times[frame_time_index] = frame_time_sec;
+		frame_time_index = (frame_time_index + 1) % 10;
+		if (fps_update_timer >= FPS_UPDATE_INTERVAL) {
+			double sum_frame_time = 0.0;
+			for (int i = 0; i < 10; i++) {
+				sum_frame_time += frame_times[i];
+			}
+			double avg_frame_time = sum_frame_time / 10.0;
+			world.fps = (avg_frame_time > 0.0) ? (float)(1.0 / avg_frame_time) : 0.0f;
+			fps_update_timer = 0.0f;
+		}
+	}
 
     free_console(&console);
     for (int i = 0; i < world.wall_count; i++) SDL_DestroyTexture(world.walls[i].texture);
