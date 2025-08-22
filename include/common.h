@@ -41,7 +41,7 @@
 // Defines the maximum rotation per fixed update for the player (based on rotation speed and fixed delta time)
 #define MAX_PLAYER_ROTATION (PLAYER_ROTATION_SPEED * FIXED_DT * 1.0f)
 // Number of rays for smooth circle approximation (higher = smoother, but 360 is ample for 90-degree FOV)
-#define FOV_RAY_COUNT 64
+#define FOV_RAY_COUNT 128
 
 // Defines the maximum number of bullets that can exist at once (200 bullets)
 #define MAX_BULLETS 200
@@ -102,6 +102,9 @@
 #define NUM_COMMANDS 2
 // Defines the interval for the console cursor blink cycle in seconds (2 seconds)
 #define CURSOR_BLINK_INTERVAL 2.0f
+
+#define MENU_OPTION_COUNT 4
+#define MENU_OPTION_TEXT_LENGTH 32
 
 #define MA_PI (3.1415926535897932846f)
 

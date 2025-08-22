@@ -292,6 +292,45 @@ float ray_aabb_intersect(float px, float py, float dx, float dy, float minx, flo
 }
 
 float get_visibility_distance(float x1, float y1, float dx, float dy, World* world) {
+    // Normalize direction if needed (assume unit vector, but ensure length=1)
+    float length = my_sqrt(dx*dx + dy*dy);
+    if (length > 0) { dx /= length; dy /= length; }
+
+    float ray_x = x1, ray_y = y1;
+    int tile_x = (int)(ray_x / TILE_SIZE);
+    int tile_y = (int)(ray_y / TILE_SIZE);
+    float max_dist = FOV_RANGE;  // Cap to avoid infinite loops
+    float dist = 0.0f;
+
+    int step_x = (dx > 0) ? 1 : -1;
+    int step_y = (dy > 0) ? 1 : -1;
+    float t_delta_x = (dx != 0) ? TILE_SIZE / absf(dx) : 1e30f;
+    float t_delta_y = (dy != 0) ? TILE_SIZE / absf(dy) : 1e30f;
+    float t_max_x = (dx > 0 ? (tile_x + 1) * TILE_SIZE - ray_x : ray_x - tile_x * TILE_SIZE) / absf(dx);
+    float t_max_y = (dy > 0 ? (tile_y + 1) * TILE_SIZE - ray_y : ray_y - tile_y * TILE_SIZE) / absf(dy);
+
+    while (dist < max_dist) {
+        if (tile_x < 0 || tile_x >= MAP_SIZE || tile_y < 0 || tile_y >= MAP_SIZE) break;
+        if (world->map[tile_y][tile_x] == WALL_OPAQUE) {
+            return dist;  // Hit opaque tile
+        }
+
+        if (t_max_x < t_max_y) {
+            dist = t_max_x;
+            t_max_x += t_delta_x;
+            tile_x += step_x;
+        } else {
+            dist = t_max_y;
+            t_max_y += t_delta_y;
+            tile_y += step_y;
+        }
+        ray_x = x1 + dx * dist;
+        ray_y = y1 + dy * dist;
+    }
+    return max_dist;  // No hit
+}
+
+/*float get_visibility_distance(float x1, float y1, float dx, float dy, World* world) {
     float min_dist = 1e30f;  // Large initial value
     for (int i = 0; i < world->wall_count; i++) {
         Wall* w = &world->walls[i];
@@ -301,7 +340,7 @@ float get_visibility_distance(float x1, float y1, float dx, float dy, World* wor
         }
     }
     return min_dist;
-}
+}*/
 
 size_t my_strlen(const char *str) {
     size_t len = 0;

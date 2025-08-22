@@ -1,7 +1,7 @@
 #include "render.h"
 #include "utils.h"
 #include "command.h"
-//#include <math.h>
+#include "menu.h"
 
 // Renders a minimap to the screen showing walls, player, bullets, enemies, and camera view.
 void render_minimap(SDL_Renderer* renderer, Player* player, Bullet* bullets, Camera* camera, World* world, Enemy* enemies) {
@@ -248,7 +248,7 @@ bool is_in_fov(float x, float y, Player* player, World* world, float* alpha) {
 
 // Modified render() function in render.c (only the relevant parts are shown; replace accordingly)
 
-void render(SDL_Renderer* renderer, Player* player, Camera* camera, World* world, Bullet* bullets, Enemy* enemies, TTF_Font* font, Console* console, GameState* game_state) {
+void render(SDL_Renderer* renderer, Player* player, Camera* camera, World* world, Bullet* bullets, Enemy* enemies, TTF_Font* font, Console* console, GameState* game_state, Menu* menu) {
     if (!renderer) {
         printf("Error: Null renderer in render\n");
         return;
@@ -379,5 +379,6 @@ void render(SDL_Renderer* renderer, Player* player, Camera* camera, World* world
     render_console(renderer, console, font);
 
     if (game_state->minimap) render_minimap(renderer, player, bullets, camera, world, enemies);
+    render_menu(renderer, menu);
     SDL_RenderPresent(renderer);
 }

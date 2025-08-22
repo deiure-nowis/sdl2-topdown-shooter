@@ -7,13 +7,13 @@ int get_heuristic(int x1, int y1, int x2, int y2) {
 	return 10 * (dx + dy) + (14 - 2 * 10) * (dx < dy ? dx : dy);
 }
 
-void find_path(Enemy* enemy, World* world, int target_x, int target_y) {
-	if (!enemy || !world) {
+void find_path(Entity* entity, World* world, int target_x, int target_y) {
+	if (!entity || !world) {
 		printf("Error: Null enemy or world in find_path\n");
 		return;
 	}
 	if (!is_valid_node(target_x, target_y, world)) {
-		enemy->path_length = 0;
+		entity->path_length = 0;
 		return;
 	}
 
@@ -22,11 +22,11 @@ void find_path(Enemy* enemy, World* world, int target_x, int target_y) {
 	int open_count = 0, closed_count = 0;
 	int iterations = 0;
 
-	int start_x = (int)((enemy->x + enemy->w / 2) / TILE_SIZE);
-	int start_y = (int)((enemy->y + enemy->h / 2) / TILE_SIZE);
+	int start_x = (int)((entity->x + entity->w / 2) / TILE_SIZE);
+	int start_y = (int)((entity->y + entity->h / 2) / TILE_SIZE);
 
 	if (!is_valid_node(start_x, start_y, world)) {
-		enemy->path_length = 0;
+		entity->path_length = 0;
 		return;
 	}
 
@@ -45,14 +45,14 @@ void find_path(Enemy* enemy, World* world, int target_x, int target_y) {
 		closed_list[closed_count++] = current;
 
 		if (current.x == target_x && current.y == target_y) {
-			enemy->path_length = 0;
+			entity->path_length = 0;
 			while (current.x != -1 && current.y != -1) {
-				if (enemy->path_length >= MAP_SIZE * MAP_SIZE) {
-					enemy->path_length = 0;
+				if (entity->path_length >= MAP_SIZE * MAP_SIZE) {
+					entity->path_length = 0;
 					printf("Error: Path length exceeded in find_path\n");
 					return;
 				}
-				enemy->path[enemy->path_length++] = current.x + current.y * MAP_SIZE;
+				entity->path[entity->path_length++] = current.x + current.y * MAP_SIZE;
 				if (current.parent_x == -1 && current.parent_y == -1) break;
 				bool found_parent = false;
 				for (int i = 0; i < closed_count; i++) {
@@ -63,19 +63,19 @@ void find_path(Enemy* enemy, World* world, int target_x, int target_y) {
 					}
 				}
 				if (!found_parent) {
-					enemy->path_length = 0;
+					entity->path_length = 0;
 					printf("Error: Parent not found in find_path\n");
 					return;
 				}
 			}
 
-			if (enemy->path_length > 1) {
-				for (int i = 1; i < enemy->path_length; i++) {
-					enemy->path[i - 1] = enemy->path[i];
+			if (entity->path_length > 1) {
+				for (int i = 1; i < entity->path_length; i++) {
+					entity->path[i - 1] = entity->path[i];
 				}
-				enemy->path_length--;
-			} else if (enemy->path_length == 1) {
-				enemy->path_length = 0;
+				entity->path_length--;
+			} else if (entity->path_length == 1) {
+				entity->path_length = 0;
 			}
 			return;
 		}
@@ -136,7 +136,7 @@ void find_path(Enemy* enemy, World* world, int target_x, int target_y) {
 			}
 		}
 	}
-	enemy->path_length = 0;
+	entity->path_length = 0;
 }
 
 void move_along_path(Enemy* enemy, World* world, int enemy_index, int last_target_x, int last_target_y) {

@@ -8,6 +8,8 @@ typedef struct{
     float x, y;        // Position coordinates in pixels
     float w, h;        // Width and height in pixels
     float angle;       // Rotation angle in degrees
+    int path[MAP_SIZE * MAP_SIZE]; // Array storing pathfinding nodes
+    int path_length;   // Number of nodes in the current path
 } Entity;
 
 // Represents the player with position, size, velocity, angle, and texture
@@ -139,5 +141,27 @@ typedef struct{
     bool is_fullscreen;// Whether the game is in fullscreen mode
     bool spawn_enabled;// Whether enemy spawning is enabled
 } GameState;
+
+typedef enum {
+    MAIN_MENU = 0,
+    OPTIONS_MENU = 1
+} MenuType;
+
+typedef struct {
+    char text[MENU_OPTION_TEXT_LENGTH];
+    SDL_Rect rect;
+    SDL_Texture* text_texture;
+    bool is_hovered;
+} MenuOption;
+
+typedef struct {
+    bool active;
+    MenuType type;
+    MenuOption main_options[MENU_OPTION_COUNT];
+    MenuOption options_menu_options[MENU_OPTION_COUNT];
+    int selected_option; // -1 for none
+    GameState* game_state; // Pointer to game state for toggling
+    TTF_Font* font; // Font for rendering text
+} Menu;
 
 #endif

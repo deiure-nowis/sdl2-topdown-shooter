@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Iinclude -O2 -g
 LDFLAGS = -lSDL2 -lSDL2_image -lSDL2_ttf 
-SOURCES = src/main.c src/utils.c src/pathfinding.c src/game.c src/command.c src/render.c
+SOURCES = src/main.c src/utils.c src/pathfinding.c src/game.c src/command.c src/render.c src/menu.c
 OBJECTS = $(SOURCES:.c=.o)
 EXECUTABLE = game
 
