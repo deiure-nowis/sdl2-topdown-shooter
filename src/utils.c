@@ -117,7 +117,7 @@ void init_walls(World* world, SDL_Renderer* renderer, SDL_Texture* wall_texture_
 	memcpy(temp_map, world->map, sizeof(temp_map));
 	for (int y = 0; y < MAP_SIZE; y++) {
 		for (int x = 0; x < MAP_SIZE; x++) {
-			if (world->map[y][x] == WALL_SMALL || world->map[y][x] == WALL_BULLETPROOF || world->map[y][x] == WALL_OPAQUE) {
+			if (world->map[y][x] == WALL_BULLETPROOF || world->map[y][x] == WALL_OPAQUE) {
 				int directions[8][2] = {
 					{0, 1}, {1, 0}, {0, -1}, {-1, 0},
 					{1, 1}, {1, -1}, {-1, 1}, {-1, -1}
@@ -125,7 +125,7 @@ void init_walls(World* world, SDL_Renderer* renderer, SDL_Texture* wall_texture_
 				for (int i = 0; i < 8; i++) {
 					int nx = x + directions[i][0];
 					int ny = y + directions[i][1];
-					if (nx >= 0 && nx < MAP_SIZE && ny >= 0 && ny < MAP_SIZE && world->map[ny][nx] == WALL_NONE) {
+					if (nx >= 0 && nx < MAP_SIZE && ny >= 0 && ny < MAP_SIZE && world->map[ny][nx] == WALL_NONE && world->map[ny][nx] == WALL_SMALL) {
 						temp_map[ny][nx] = WALL_PATHFINDING_BLOCK;
 					}
 				}
@@ -162,7 +162,7 @@ bool check_collision(float x1, float y1, float w1, float h1, float x2, float y2,
 
 bool is_valid_node(int x, int y, World* world) {
 	if (x < 0 || x >= MAP_SIZE || y < 0 || y >= MAP_SIZE) return false;
-	return world->map[y][x] == WALL_NONE;
+	return (world->map[y][x] == WALL_NONE || world->map[y][x] == WALL_SMALL);
 }
 
 bool has_line_of_sight(float start_x, float start_y, float end_x, float end_y, World* world, bool block_by_bulletproof, bool block_by_opaque) {
@@ -329,18 +329,6 @@ float get_visibility_distance(float x1, float y1, float dx, float dy, World* wor
     }
     return max_dist;  // No hit
 }
-
-/*float get_visibility_distance(float x1, float y1, float dx, float dy, World* world) {
-    float min_dist = 1e30f;  // Large initial value
-    for (int i = 0; i < world->wall_count; i++) {
-        Wall* w = &world->walls[i];
-        if (w->type == WALL_OPAQUE) {  // These block sight, based on current logic
-            float t = ray_aabb_intersect(x1, y1, dx, dy, w->x, w->y, w->x + w->w, w->y + w->h);
-            if (t > 0.0f && t < min_dist) min_dist = t;
-        }
-    }
-    return min_dist;
-}*/
 
 size_t my_strlen(const char *str) {
     size_t len = 0;

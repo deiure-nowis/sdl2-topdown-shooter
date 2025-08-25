@@ -130,23 +130,46 @@ void fixed_update_player(Player* player, World* world, Bullet* bullets, Camera* 
         player->vel_y = (player->vel_y / length) * speed * FIXED_DT;
     }
 
+	// Calculate temporary next position for small wall check
+	float temp_next_x = player->x + player->vel_x;
+	float temp_next_y = player->y + player->vel_y;
+	bool in_small_wall = false;
+
+	// Loop through walls to check for small wall intersetion at projected position
+	for (int i = 0; i < world->wall_count; i++){
+		if(world->walls[i].type == WALL_SMALL &&
+			check_collision(temp_next_x, temp_next_y, player->w, player->h,
+							world->walls[i].x, world->walls[i].y,
+							world->walls[i].w, world->walls[i].h)){
+			in_small_wall = true;
+			break;
+		}
+	}
+
+	// Halve velocity if intersecting a small wall
+	if (in_small_wall) {
+		player->vel_x *= 0.25f;
+		player->vel_y *= 0.25f;
+	}
+
     float next_x = player->x + player->vel_x;
     float next_y = player->y + player->vel_y;
     bool collide_x = false, collide_y = false;
 
+	// Wall colision
     for (int i = 0; i < world->wall_count; i++) {
-        if (world->walls[i].type != WALL_NONE &&
-            check_collision(next_x + 10, player->y + 10, player->w - 20, player->h - 20,
-                            world->walls[i].x, world->walls[i].y,
-                            world->walls[i].w, world->walls[i].h)) {
-            collide_x = true;
-        }
-        if (world->walls[i].type != WALL_NONE &&
-            check_collision(player->x + 10, next_y + 10, player->w - 20, player->h - 20,
-                            world->walls[i].x, world->walls[i].y,
-                            world->walls[i].w, world->walls[i].h)) {
-            collide_y = true;
-        }
+        if (world->walls[i].type != WALL_NONE && world->walls[i].type != WALL_SMALL){
+			if(check_collision(next_x + 10, player->y + 10, player->w - 20, player->h - 20,
+								world->walls[i].x, world->walls[i].y,
+								world->walls[i].w, world->walls[i].h)) {
+				collide_x = true;
+			}
+			if (check_collision(player->x + 10, next_y + 10, player->w - 20, player->h - 20,
+								world->walls[i].x, world->walls[i].y,
+								world->walls[i].w, world->walls[i].h)) {
+				collide_y = true;
+			}
+		}
     }
 
     if (!collide_x) player->x += player->vel_x;
@@ -390,18 +413,18 @@ void fixed_update_enemies(Player* player, World* world, Bullet* bullets, Enemy* 
         float e_next_y = enemies[i].y + enemies[i].vel_y;
         bool collide_x = false, collide_y = false;
         for (int j = 0; j < world->wall_count; j++) {
-            if (world->walls[j].type != WALL_NONE &&
-                check_collision(e_next_x, enemies[i].y, enemies[i].w, enemies[i].h,
-                                world->walls[j].x, world->walls[j].y,
-                                world->walls[j].w, world->walls[j].h)) {
-                collide_x = true;
-            }
-            if (world->walls[j].type != WALL_NONE &&
-                check_collision(enemies[i].x, e_next_y, enemies[i].w, enemies[i].h,
-                                world->walls[j].x, world->walls[j].y,
-                                world->walls[j].w, world->walls[j].h)) {
-                collide_y = true;
-            }
+            if (world->walls[j].type != WALL_NONE && world->walls[j].type != WALL_SMALL){
+				if(check_collision(e_next_x + 10, enemies[i].y + 10, enemies[i].w - 20, enemies[i].h - 20,
+									world->walls[j].x, world->walls[j].y,
+									world->walls[j].w, world->walls[j].h)) {
+					collide_x = true;
+				}
+				if(check_collision(enemies[i].x + 10, e_next_y + 10, enemies[i].w - 20, enemies[i].h - 20,
+									world->walls[j].x, world->walls[j].y,
+									world->walls[j].w, world->walls[j].h)) {
+					collide_y = true;
+				}
+			}
         }
         if (!collide_x) enemies[i].x = e_next_x;
         if (!collide_y) enemies[i].y = e_next_y;

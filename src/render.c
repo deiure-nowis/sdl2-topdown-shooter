@@ -142,11 +142,11 @@ void render_fov(SDL_Renderer* renderer, Player* player, Camera* camera, World* w
     float player_screen_x = player_x - camera->x;
     float player_screen_y = player_y - camera->y;
 
-    // Array to hold points for polygons (sector + circle, each with 32 rays + start/end points)
-    SDL_Point points[34]; // 32 rays + player start + player end
+    // Array to hold points for polygons (sector + circle, each with 64 rays + start/end points)
+    SDL_Point points[66]; // 64 rays + player start + player end
 
     // --- Sector Polygon (90-degree, 700 pixels) ---
-    int rays = 32;
+    int rays = 64;
     float angle_rad = player->angle * (MA_PI / 180.0f);
     float half_fov_rad = FOV_HALF_ANGLE * (MA_PI / 180.0f);
     float angle_step = (2.0f * half_fov_rad) / (rays - 1);

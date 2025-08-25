@@ -25,18 +25,18 @@ Install the required libraries using your package manager:
 
 - **macOS** (using Homebrew):
 ```sh
-  brew install sdl2 sdl2_image sdl2_ttf
+brew install sdl2 sdl2_image sdl2_ttf
 ```
 
 - **Linux** (e.g., Ubuntu/Debian):
 ```sh
-  sudo apt update
-  sudo apt install libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev
+sudo apt update
+sudo apt install libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev
 ```
 
 - **Windows** (using MSYS2):
 ```sh
-  pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-SDL2_ttf
+pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-SDL2_ttf
 ```
 
 Ensure you have gcc and make installed. On Linux/Windows, these are typically available via build-essential (Ubuntu) or MSYS2’s toolchain. On macOS, install the Xcode Command Line Tools:
@@ -45,26 +45,26 @@ Ensure you have gcc and make installed. On Linux/Windows, these are typically av
 - **Compilation**
 1. Clone the repository:
 ```sh
-  git clone https://github.com/deiure-nowis/sdl2-topdown-shooter.git
-  cd sdl2-topdown-shooter
+git clone https://github.com/deiure-nowis/sdl2-topdown-shooter.git
+cd sdl2-topdown-shooter
 ```
 
 2. Build the project using the provided Makefile:
 ```sh
-  make
+make
 ```
 
 This compiles src/main.c, src/utils.c, src/pathfinding.c, src/game.c, src/command.c, src/render.c, and src/menu.c with flags -Wall -O2 -g and links against -lSDL2 -lSDL2_image -lSDL2_ttf.
 
 3. Run the game:
 ```sh
-  ./game
+./game
 ```
   
 -  **Cleaning**
 To remove compiled objects and the executable:
 ```sh
-  make clean
+make clean
 ```
 
 ---

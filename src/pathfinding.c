@@ -108,6 +108,12 @@ void find_path(Entity* entity, World* world, int target_x, int target_y) {
 			}
 			if (in_closed) continue;
 
+			// Adjust cost based on tile type
+			int cost = costs[i];
+			if(new_x >= 0 && new_x < MAP_SIZE && new_y >= 0 && new_y < MAP_SIZE && world->map[new_y][new_x] == WALL_SMALL){
+				cost *= 2;
+			}
+
 			int new_g = current.g + costs[i];
 			int new_h = get_heuristic(new_x, new_y, target_x, target_y);
 			int new_f = new_g + new_h;
@@ -223,11 +229,31 @@ void move_along_path(Enemy* enemy, World* world, int enemy_index, int last_targe
     }
     update_angle(next_x, next_y);
 
+	bool in_small_wall = false;
     // Update velocity (continuous movement)
     if (dist > 0.0f) {
         float speed = ENEMY_SPEED * FIXED_DT;
         enemy->vel_x = (dx / dist) * speed;
         enemy->vel_y = (dy / dist) * speed;
+
+		// Check for small wall intersection at projected position
+		float temp_next_x = enemy->x + enemy->vel_x;
+		float temp_next_y = enemy->y + enemy->vel_y;
+		for(int j = 0; j < world->wall_count; j++) {
+			if(world->walls[j].type == WALL_SMALL &&
+				check_collision(temp_next_x + 10, temp_next_y + 10, enemy->w - 20, enemy->h - 20,
+								world->walls[j].x, world->walls[j].y,
+								world->walls[j].w, world->walls[j].h)){
+				in_small_wall = true;
+				break;
+			}
+		}
+
+		// Reduce velocity to 0.25f
+		if (in_small_wall) {
+			enemy->vel_x *= 0.25f;
+			enemy->vel_y *= 0.25f;
+		}
     } else {
         enemy->vel_x = 0.0f;
         enemy->vel_y = 0.0f;
@@ -236,7 +262,7 @@ void move_along_path(Enemy* enemy, World* world, int enemy_index, int last_targe
     // Check if stuck
     float movement = my_sqrt((enemy->x - last_x[enemy_index]) * (enemy->x - last_x[enemy_index]) +
                             (enemy->y - last_y[enemy_index]) * (enemy->y - last_y[enemy_index]));
-    if (movement < 1.0f && enemy->path_length > 0) {
+    if (movement < 1.0f && enemy->path_length > 0 && !in_small_wall) {
         stuck_timer[enemy_index] += FIXED_DT;
         if (stuck_timer[enemy_index] >= STUCK_THRESHOLD) {
             printf("Enemy %d stuck at (%.2f, %.2f) tile (%d, %d), targeting (%d, %d), path_length=%d\n",
@@ -327,8 +353,6 @@ void find_cover_point(Enemy* enemy, World* world, int player_x, int player_y, in
 		return;
 	}
 
-	//int enemy_tile_x = (int)((enemy->x + enemy->w / 2) / TILE_SIZE);
-	//int enemy_tile_y = (int)((enemy->y + enemy->h / 2) / TILE_SIZE);
 	int best_x = -1, best_y = -1;
 	float best_score = FLT_MAX;
 	int directions[4][2] = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}}; // Orthogonal directions

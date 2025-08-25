@@ -69,8 +69,8 @@
 #define PATHFINDING_INTERVAL 0.5f
 // Defines the maximum number of iterations for the pathfinding algorithm (1000 iterations)
 #define MAX_PATHFINDING_ITERATIONS 1000
-// Defines the time threshold to detect if an enemy is stuck in seconds (1 second)
-#define STUCK_THRESHOLD 1.0f
+// Defines the time threshold to detect if an enemy is stuck in seconds (2 second)
+#define STUCK_THRESHOLD 2.0f
 
 // Defines the maximum distance for enemies to seek cover in pixels (544 pixels)
 #define MAX_COVER_DISTANCE 544.0f
